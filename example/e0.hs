@@ -22,7 +22,7 @@ prop_intCom2Bad i j = i + j == j + i + 2
 tests :: [Test]
 tests =
   [ boolTest "int1"             prop_int1
-  , boolTest "stringHelloBad"   prop_stringHelloBad
+  , boolTest' "stringHelloBad"  "Hello =/= Hellox" prop_stringHelloBad
   , qcTest   "intComBad"        prop_intComBad
   , qcTest   "intCom2Bad"       prop_intCom2Bad
   ]
