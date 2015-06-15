@@ -23,6 +23,7 @@ tests :: [Test]
 tests =
   [ boolTest "int1"             prop_int1
   , boolTest' "stringHelloBad"  "Hello =/= Hellox" prop_stringHelloBad
+  , eqTest    "stringHelloBad"  stringHello "Hellox"
   , qcTest   "intComBad"        prop_intComBad
   , qcTest   "intCom2Bad"       prop_intCom2Bad
   ]
