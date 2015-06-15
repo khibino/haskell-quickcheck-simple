@@ -10,7 +10,10 @@
 -- This module contains definitions of test properties and default-mains
 -- using QuickCheck library.
 module Test.QuickCheck.Simple
-       ( Property (..), boolTest', boolTest, qcTest
+       ( Property (..)
+       , boolTest', boolTest
+       , eqTest', eqTest
+       , qcTest
        , Test, TestError (..)
        , runTest
        , defaultMain', defaultMain
@@ -54,6 +57,15 @@ boolTest :: String
          -> Bool
          -> Test
 boolTest n = mkBoolTest n Nothing
+
+-- | 'Eq' specialized property with explicit passing
+eqTest' :: (a -> a -> Bool) -> (a -> String) -> String -> a -> a -> Test
+eqTest' eq show' n x y = boolTest' n msg $ x `eq` y where
+  msg = unlines [show' x, "** NOT EQUALS **", show' y]
+
+-- | 'Eq' specialized property
+eqTest :: (Eq a, Show a) => String -> a -> a -> Test
+eqTest = eqTest' (==) show
 
 -- | QuickCheck 'Testable' property
 qcTest :: Testable prop
