@@ -10,7 +10,7 @@
 -- This module contains definitions of test properties and default-mains
 -- using QuickCheck library.
 module Test.QuickCheck.Simple
-       ( Property (..), boolTest, qcTest
+       ( Property (..), boolTest', boolTest, qcTest
        , Test, TestError (..)
        , runTest
        , defaultMain', defaultMain
@@ -18,7 +18,7 @@ module Test.QuickCheck.Simple
 
 import Control.Applicative ((<$>))
 import Control.Monad (when, unless)
-import Data.Maybe (catMaybes)
+import Data.Maybe (fromMaybe, catMaybes)
 import Data.Monoid ((<>))
 import Test.QuickCheck
   (Testable, Result (..), quickCheckResult, label)
@@ -27,7 +27,7 @@ import qualified Test.QuickCheck as QC
 
 -- | Property type. 'Bool' or 'Testable' of QuickCheck.
 data Property
-  = Bool Bool
+  = Bool (Maybe String) Bool
   | QuickCheck QC.Property
 
 -- | Property with label string
@@ -35,15 +35,25 @@ type Test = (String, Property)
 
 -- | Test error result.
 data TestError
-  = BFalse
+  = BFalse (Maybe String)
   | QCError Result
   deriving Show
+
+mkBoolTest :: String -> Maybe String -> Bool -> Test
+mkBoolTest n m = ((,) n) . Bool m
+
+-- | 'Bool' specialized property with message for False case
+boolTest' :: String
+          -> String
+          -> Bool
+          -> Test
+boolTest' n m = mkBoolTest n (Just m)
 
 -- | 'Bool' specialized property
 boolTest :: String
          -> Bool
          -> Test
-boolTest n = ((,) n) . Bool
+boolTest n = mkBoolTest n Nothing
 
 -- | QuickCheck 'Testable' property
 qcTest :: Testable prop
@@ -55,14 +65,14 @@ qcTest n = ((,) n) . QuickCheck . label n
 putErrorLn :: String -> IO ()
 putErrorLn = putStrLn . ("*** " <>)
 
-runBool :: String -> Bool -> IO (Maybe TestError)
-runBool n = d  where
+runBool :: String -> Maybe String -> Bool -> IO (Maybe TestError)
+runBool n m = d  where
   d True  =  do
     putStrLn $ "+++ OK, success (" <> n <> ")"
     return   Nothing
   d False =  do
     putErrorLn $ "Failed! (" <> n <> ")"
-    return . Just $ BFalse
+    return . Just $ BFalse m
 
 runQcProp :: String -> QC.Property -> IO (Maybe TestError)
 runQcProp n p = err =<< quickCheckResult p  where
@@ -74,7 +84,7 @@ runQcProp n p = err =<< quickCheckResult p  where
 
 runProp :: String -> Property -> IO (Maybe TestError)
 runProp n = d  where
-  d (Bool b)         =  runBool n b
+  d (Bool m b)       =  runBool n m b
   d (QuickCheck p)   =  runQcProp n p
 
 -- | Run a single test suite.
@@ -87,11 +97,16 @@ runPropL n p = do
   me <- runProp n p
   return $ fmap ((,) n) me
 
+showTestError :: TestError -> String
+showTestError = d  where
+  d (BFalse m)   =  fromMaybe "" m
+  d (QCError r)  =  show r
+
 -- | Default main to run test suites.
 defaultMain' :: Bool -> [Test] -> IO ()
 defaultMain' verbose xs = do
   es <- catMaybes <$> mapM (uncurry runPropL) xs
-  let rlines m r = (m <> ":") : [ "  " <> x | x <- lines $ show r ]
+  let rlines m r = (m <> ":") : [ "  " <> x | x <- lines $ showTestError r ]
   when verbose $ mapM_ (\(m, r) -> mapM_ putStrLn $ rlines m r) es
   unless (null es) $ fail "Some failures are found."
 
