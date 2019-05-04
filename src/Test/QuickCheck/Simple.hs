@@ -16,7 +16,7 @@ module Test.QuickCheck.Simple
        , qcTest
        , Test, TestError (..)
        , runTest
-       , defaultMain', defaultMain
+       , defaultMain', defaultMain, verboseMain,
        ) where
 
 import Control.Applicative ((<$>))
@@ -125,3 +125,7 @@ defaultMain' verbose xs = do
 -- | Not verbose version of 'defaultMain''.
 defaultMain :: [Test] -> IO ()
 defaultMain = defaultMain' False
+
+-- | Verbose verison of defaultMain
+verboseMain :: [Test] -> IO ()
+verboseMain = defaultMain' True
