@@ -73,7 +73,7 @@ qcTest n = ((,) n) . QuickCheck . label n
 
 --------------------------------------------------------------------------------
 
--- | Test error result.
+-- | Test failure result.
 data TestError
   = BFalse (Maybe String {- verbose error message -})
   | QCError Result
