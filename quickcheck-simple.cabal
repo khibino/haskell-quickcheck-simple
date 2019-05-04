@@ -22,7 +22,10 @@ tested-with:           GHC == 8.6.1, GHC == 8.6.2, GHC == 8.6.3, GHC == 8.6.4, G
                      , GHC == 7.4.1, GHC == 7.4.2
 
 library
-  exposed-modules:     Test.QuickCheck.Simple
+  exposed-modules:
+                       Test.QuickCheck.Simple
+                       Test.QuickCheck.CompatIO
+
   build-depends:       base <5, QuickCheck >=2
   hs-source-dirs:      src
   ghc-options:         -Wall
