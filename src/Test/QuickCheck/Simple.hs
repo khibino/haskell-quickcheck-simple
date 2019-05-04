@@ -14,14 +14,15 @@ module Test.QuickCheck.Simple
        , boolTest', boolTest
        , eqTest', eqTest
        , qcTest
+
        , Test, TestError (..)
-       , runTest
+       , runTest_, runTest
        , defaultMain', defaultMain, verboseMain,
        ) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (when, unless)
-import Data.Maybe (fromMaybe, catMaybes)
+import Control.Monad (unless)
+import Data.Maybe (catMaybes)
 import Data.Monoid ((<>))
 import Test.QuickCheck
   (Testable, Result (..), quickCheckResult, label)
@@ -30,15 +31,15 @@ import qualified Test.QuickCheck as QC
 
 -- | Property type. 'Bool' or 'Testable' of QuickCheck.
 data Property
-  = Bool (Maybe String) Bool
+  = Bool (Maybe String {- verbose error message -}) Bool
   | QuickCheck QC.Property
 
 -- | Property with label string
-type Test = (String, Property)
+type Test = (String {- label -}, Property)
 
 -- | Test error result.
 data TestError
-  = BFalse (Maybe String)
+  = BFalse (Maybe String {- verbose error message -})
   | QCError Result
   deriving Show
 
@@ -77,49 +78,66 @@ qcTest n = ((,) n) . QuickCheck . label n
 putErrorLn :: String -> IO ()
 putErrorLn = putStrLn . ("*** " <>)
 
-runBool :: String -> Maybe String -> Bool -> IO (Maybe TestError)
-runBool n m = d  where
+printVerbose :: String -> TestError -> IO ()
+printVerbose lb te = case te of
+    BFalse m   ->  maybe (return ()) format m
+    QCError r  ->  format $ show r
+  where
+    format s =
+      mapM_ putErrorLn
+      $ ("label: " <> lb <> ":") : (map ("  " <>) $ lines s)
+
+runBool :: String
+        -> Maybe String -- ^ verbose error message. Nothing corresponds to not verbose.
+        -> Bool
+        -> IO (Maybe TestError)
+runBool lb vmsg = d  where
   d True  =  do
-    putStrLn $ "+++ OK, success (" <> n <> ")"
+    putStrLn $ "+++ OK, success (" <> lb <> ")"
     return   Nothing
   d False =  do
-    putErrorLn $ "Failed! (" <> n <> ")"
-    return . Just $ BFalse m
+    putErrorLn $ "Failed! (" <> lb <> ")"
+    let r = BFalse vmsg
+    printVerbose lb r
+    return $ Just r
 
-runQcProp :: String -> QC.Property -> IO (Maybe TestError)
-runQcProp n p = err =<< quickCheckResult p  where
+runQcProp :: Bool -- ^ verbose flag
+          -> String
+          -> QC.Property
+          -> IO (Maybe TestError)
+runQcProp verbose lb p = err =<< quickCheckResult p  where
   err (Success {})  =
     return   Nothing
   err x             =  do
-    putErrorLn $ "  label: " <> n
-    return . Just $ QCError x
+    let r = QCError x
+    if verbose
+      then printVerbose lb r            -- this action show label
+      else putErrorLn $ "label: " <> lb -- quickcheck does not show label
+    return $ Just r
 
-runProp :: String -> Property -> IO (Maybe TestError)
-runProp n = d  where
-  d (Bool m b)       =  runBool n m b
-  d (QuickCheck p)   =  runQcProp n p
+runProp :: Bool
+         -> String
+         -> Property
+         -> IO (Maybe TestError)
+runProp verbose lb prop = case prop of
+  Bool m b      ->  runBool lb (if verbose then m else Nothing) b
+  QuickCheck p  ->  runQcProp verbose lb p
 
 -- | Run a single test suite.
-runTest :: Test
-        -> IO (Maybe TestError)
-runTest = uncurry runProp
+runTest_ :: Bool                 -- ^ verbose flag
+         -> Test                 -- ^ property to test
+         -> IO (Maybe TestError) -- ^ result action, and may be failure result
+runTest_ verbose = uncurry $ runProp verbose
 
-runPropL :: String -> Property -> IO (Maybe (String, TestError))
-runPropL n p = do
-  me <- runProp n p
-  return $ fmap ((,) n) me
-
-showTestError :: TestError -> String
-showTestError = d  where
-  d (BFalse m)   =  fromMaybe "" m
-  d (QCError r)  =  show r
+-- | Not verbose version of runTest_
+runTest :: Test                 -- ^ property to test
+        -> IO (Maybe TestError) -- ^ result action, and may be failure result
+runTest = runTest_  False
 
 -- | Default main to run test suites.
 defaultMain' :: Bool -> [Test] -> IO ()
 defaultMain' verbose xs = do
-  es <- catMaybes <$> mapM (uncurry runPropL) xs
-  let rlines m r = (m <> ":") : [ "  " <> x | x <- lines $ showTestError r ]
-  when verbose $ mapM_ (\(m, r) -> mapM_ putStrLn $ rlines m r) es
+  es <- catMaybes <$> mapM (runTest_ verbose) xs
   unless (null es) $ fail "Some failures are found."
 
 -- | Not verbose version of 'defaultMain''.
