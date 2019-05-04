@@ -17,7 +17,9 @@ module Test.QuickCheck.Simple
 
        , Test, TestError (..)
        , runTest_, runTest
-       , defaultMain', defaultMain, verboseMain,
+       , defaultMain_, defaultMain, verboseMain
+
+       , defaultMain'
        ) where
 
 import Control.Applicative ((<$>))
@@ -137,10 +139,14 @@ runTest :: Test                 -- ^ property to test
 runTest = runTest_  False
 
 -- | Default main to run test suites.
-defaultMain' :: Bool -> [Test] -> IO ()
-defaultMain' verbose xs = do
+defaultMain_ :: Bool -> [Test] -> IO ()
+defaultMain_ verbose xs = do
   es <- catMaybes <$> mapM (runTest_ verbose) xs
   unless (null es) $ fail "Some failures are found."
+
+defaultMain' :: Bool -> [Test] -> IO ()
+defaultMain' = defaultMain_
+{-# DEPRECATED defaultMain' "Use defaultMain_ instead of this." #-}
 
 -- | Not verbose version of 'defaultMain''.
 defaultMain :: [Test] -> IO ()
