@@ -37,12 +37,6 @@ data Property
 -- | Property with label string
 type Test = (String {- label -}, Property)
 
--- | Test error result.
-data TestError
-  = BFalse (Maybe String {- verbose error message -})
-  | QCError Result
-  deriving Show
-
 mkBoolTest :: String -> Maybe String -> Bool -> Test
 mkBoolTest n m = ((,) n) . Bool m
 
@@ -74,6 +68,14 @@ qcTest :: Testable prop
        -> prop
        -> Test
 qcTest n = ((,) n) . QuickCheck . label n
+
+--------------------------------------------------------------------------------
+
+-- | Test error result.
+data TestError
+  = BFalse (Maybe String {- verbose error message -})
+  | QCError Result
+  deriving Show
 
 putErrorLn :: String -> IO ()
 putErrorLn = putStrLn . ("*** " <>)
