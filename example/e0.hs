@@ -1,32 +1,68 @@
 
 import Test.QuickCheck.Simple
+import System.IO.Error
 
-int1 :: Int
-int1 = 1
+boolTQ :: Test
+boolTQ = boolTest "true" True
 
-stringHello :: String
-stringHello = "Hello"
+boolTV :: Test
+boolTV = boolTest' "true-verbose" "verbose true" True
 
-prop_int1 :: Bool
-prop_int1 = int1 == 1
+boolFQ :: Test
+boolFQ = boolTest "false" False
 
-prop_stringHelloBad :: Bool
-prop_stringHelloBad = stringHello == "Hellox"
+boolFV :: Test
+boolFV = boolTest' "false-verbose" "verbose false error message" False
 
-prop_intComBad :: Int -> Int -> Bool
-prop_intComBad i j = i + j == j + i + 1
+eqTQ :: Test
+eqTQ = eqTest "eq" 1 (1 :: Int)
 
-prop_intCom2Bad :: Int -> Int -> Bool
-prop_intCom2Bad i j = i + j == j + i + 2
+eqTV :: Test
+eqTV = eqTest' (==) show "eq-verbose" 1 (1 :: Int)
 
-tests :: [Test]
-tests =
-  [ boolTest "int1"             prop_int1
-  , boolTest' "stringHelloBad"  "Hello =/= Hellox" prop_stringHelloBad
-  , eqTest    "stringHelloBad"  stringHello "Hellox"
-  , qcTest   "intComBad"        prop_intComBad
-  , qcTest   "intCom2Bad"       prop_intCom2Bad
+eqFQ :: Test
+eqFQ = eqTest "neq" 2 (1 :: Int)
+
+eqFV :: Test
+eqFV = eqTest' (==) show "neq-verbose" 2 (1 :: Int)
+
+qcT :: Test
+qcT = qcTest "qc-true" (\x -> (x :: Int) == x)
+
+qcF :: Test
+qcF = qcTest "qc-false" (\x -> (x :: Int) == x + 1)
+
+successTests :: [Test]
+successTests =
+  [ boolTQ
+  , boolTV
+  , eqTQ
+  , eqTV
+  , qcT
   ]
 
+allTests :: [Test]
+allTests =
+  [ boolTQ
+  , boolTV
+  , boolFQ
+  , boolFV
+  , eqTQ
+  , eqTV
+  , eqFQ
+  , eqFV
+  , qcT
+  , qcF
+  ]
+
+putLine :: IO ()
+putLine = putStrLn "\n------------------------------\n"
+
 main :: IO ()
-main = defaultMain' True tests
+main = do
+  verboseMain successTests
+  putLine
+  _ <- tryIOError $ defaultMain allTests
+  putLine
+  _ <- tryIOError $ verboseMain allTests
+  return ()
