@@ -1,6 +1,6 @@
 -- |
 -- Module      : Test.QuickCheck.Simple
--- Copyright   : 2015 Kei Hibino
+-- Copyright   : 2015-2019 Kei Hibino
 -- License     : BSD3
 --
 -- Maintainer  : ex8k.hibino@gmail.com
