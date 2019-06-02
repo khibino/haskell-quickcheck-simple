@@ -150,8 +150,8 @@ defaultMain' = defaultMain_
 
 -- | Not verbose version of 'defaultMain''.
 defaultMain :: [Test] -> IO ()
-defaultMain = defaultMain' False
+defaultMain = defaultMain_ False
 
 -- | Verbose verison of defaultMain
 verboseMain :: [Test] -> IO ()
-verboseMain = defaultMain' True
+verboseMain = defaultMain_ True
